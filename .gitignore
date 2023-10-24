@@ -1,5 +1,7 @@
 
-#api keys
-
+#api keys & Token directiory
 keys/
 
+# python cache파일
+*.pyc
+__pycache__/
