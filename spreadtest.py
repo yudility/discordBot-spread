@@ -2,27 +2,49 @@ import gspread
 from gspread_formatting import *
 from oauth2client.service_account import ServiceAccountCredentials
 
+
 scope = 'https://spreadsheets.google.com/feeds'
 json = 'keys/dotspreed-0f70c3397201.json'
-sheet_url = 'https://docs.google.com/spreadsheets/d/1vBaQpznNODv-vvIymOm1571s-XFBphwXKG_7mTf5Als/edit#gid=0'
+
+f = open('keys\sheetURL.txt','r')
+sheet_url = f.readline()
+f.close()
 
 credentials = ServiceAccountCredentials.from_json_keyfile_name(json, scope)
+
+
+# TODO 
+# 하드코딩 수정하기
 
 gc = gspread.authorize(credentials)
 doc = gc.open_by_url(sheet_url)
 worksheet = doc.worksheet('시트1')
 
-# cell_data = worksheet.acell('A1').value
-#test = worksheet.update_acell('b11',"input test")
+start_col = 'B'
+start_row = 16
+end_col = 'D'
+end_row = 50
 
-cell_range = ['B16:D50']
+cell_range = '{}{}:{}{}'.format(start_col,start_row,end_col,end_row)
 
-# 범위만큼 가져오기
-status = worksheet.batch_get(cell_range)
+total_rows = end_row - start_row + 1
 
-print(len(status[0]))
+
+
+def getDate():
+    date_dict = {}
+
+    cell_list = worksheet.range('날짜')
+
+    for cell in cell_list :
+        if len(cell.value) > 0 :
+            date_dict[cell.address] = cell.value
+
+    print(date_dict)
+    return date_dict 
 
 def getPerson():
+    status = worksheet.batch_get(cell_range)
     new_name_list = []
     
     for i in range(len(status[0])):
@@ -32,34 +54,66 @@ def getPerson():
             continue  # 빈 문자열인 경우 스킵
         # 아니면 추가
         new_name_list.append(person_info)
-    # 결과 출력    
-    # print(new_name_list)
+
     return new_name_list
 
-def addPerson(name, job, jg):
+def addPersonToDot(name, job, jg):
+
+    # TODO 
+    # 하드코딩 수정하기
+    new_cell_list = []
+    cell_list = worksheet.range('돚거단1')
+ 
+    i = 0
+
+    while(i < len(cell_list)):
+        if len(cell_list[i].value)>0:
+            new_cell_list.append([cell_list[i].value, cell_list[i+1].value, cell_list[i+2].value])
+
+        i+=3
     
-    new_value = getPerson()
-    
-    new_person = [name, job, jg]
-    
-    new_value.append(new_person)
-    
-    # TODO
-    # 여기서 문제가 나는 것 같음. 찾아보자
-    worksheet.update(cell_range, new_value)
+    # 업데이트할 값 리스트에 추가
+    new_cell_list.append([name, job, jg])
+
+
+    while len(new_cell_list) < total_rows:
+        # demention 맞춰주기
+        new_cell_list.append(['','',''])
+
+    worksheet.update('돚거단1', new_cell_list,raw=False)
+
     
     worksheet.format(cell_range, {
     "horizontalAlignment": "CENTER",
     "textFormat": {
-      "foregroundColor": {
-        "red": 1.0,
-        "green": 1.0,
-        "blue": 1.0
-      },
-      "fontSize": 12,
-      "bold": True
-     }})
+        "foregroundColor": {
+            "red": 0.0,
+            "green": 0.0,
+            "blue": 0.0
+        },
+      "fontSize": 10,
+      "bold": True,
+      "fontFamily": "Nato Sans KR"
+     }
+    })
     
+def getNumberWeek(week):
 
+    date_dict = getDate()
+
+    key = None  # 일치하는 키를 저장할 변수
+    for k, value in date_dict.items():
+        if "요일" in value and value.split(" ")[-1][0] == week:
+            key = k
+            break
     
+    if key == None:
+        return "해당 요일에 거점이 없습니다."
 
+    col = key[:1]
+    total_label = '{}{}'.format(col, 14) 
+    # TODO
+    # 하드코딩 수정하기
+    total_number = worksheet.acell(total_label).value
+
+    return total_number
